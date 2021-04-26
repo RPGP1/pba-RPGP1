@@ -3,18 +3,22 @@
 #include "delfem2/glfw/viewer2.h"
 #include "delfem2/color.h"
 #include <random>
+#include <cmath>
 #include <cstdlib>
 #include <cstdio>
+#include <valarray>
 
 // print out error
 static void error_callback(int error, const char* description){
   fputs(description, stderr);
 }
 
+using fpvec = std::valarray<float>;
+
 class CParticle{
 public:
-  float pos[2] = {0.f, 0.f};
-  float velo[2] = {0.f, 0.f};
+  fpvec pos = {0.f, 0.f};
+  fpvec velo = {0.f, 0.f};
   float color[3] = {0.f, 0.f, 0.f};
 };
 
@@ -60,9 +64,40 @@ void simulate(
     float dt)
 {
   for(auto & p : aParticle) { // loop for all the particles
+    using std::pow;
+    using std::sqrt;
+
+    const static fpvec c{0.5f, 0.5f};
+    constexpr float r{0.2f};
+
+    // temporary calc the next position
+    fpvec post_pos = p.pos + dt * p.velo;
+
+    fpvec c2pos = p.pos - c;
+    float sq_arc2pos = pow(c2pos, 2).sum() - r * r;
+    // see if the particle is in the circle
+    bool in_circle = sq_arc2pos < 0,
+         post_in_circle = (pow(post_pos - c, 2).sum() < r * r);
+
+    // when crossing the circle
+    if (in_circle != post_in_circle) {
+      float dot_c2pos_velo = (c2pos * p.velo).sum();
+      float sq_speed = pow(p.velo, 2).sum();
+
+      // when collision w/ circle
+      float hit_dt = (-dot_c2pos_velo
+                          + (in_circle ? 1 : -1) * sqrt(dot_c2pos_velo * dot_c2pos_velo - sq_speed * sq_arc2pos))
+                      / sq_speed;
+
+      fpvec c2_hitpos = c2pos + hit_dt * p.velo;
+      p.velo -= 2 * (dot_c2pos_velo + hit_dt * sq_speed) / (r * r) * c2_hitpos;
+      p.pos = c + c2_hitpos + (dt - hit_dt) * p.velo;
+
+      continue;
+    }
+
     // update positions
-    p.pos[0] += dt*p.velo[0];
-    p.pos[1] += dt*p.velo[1];
+    p.pos = post_pos;
     // ------------------------
     // solve collisions below
     if( p.pos[0] < 0 ){ // left wall
@@ -80,21 +115,6 @@ void simulate(
     if( p.pos[1] > 1 ){ // top wall
       p.pos[1] = 2-p.pos[1];
       p.velo[1] = -p.velo[1];
-    }
-    { // solve collision between obstacle circle
-      float dx = p.pos[0]-0.5f; // x-coord from center
-      float dy = p.pos[1]-0.5f; // y-coord from center
-      float dist_from_center = sqrt(dx*dx+dy*dy);
-      if( dist_from_center < 0.2 ){ // collision with obstacle
-        float norm[2] = {dx/dist_from_center, dy/dist_from_center }; // unit normal vector of the circle
-        float vnorm = p.velo[0]*norm[0] + p.velo[1]*norm[1]; // normal component of the velocity
-        ////////////////////////////
-        // write something below !
-//        p.velo[0] =
-//        p.velo[1] =
-//        p.pos[0] =
-//        p.pos[1] =
-      }
     }
   }
 }

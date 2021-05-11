@@ -132,10 +132,14 @@ void collision_detection(
 //    std::cout << pi.p << " " << pi.is_start << " " << pi.icircle << std::endl;
     if( pi.is_start ){ // enter the range of the circle
       unsigned int ic0 = pi.icircle;
-      // ----------------------------------------------
-      // write some codes here (probably 5 - 10 lines)
-      // use the function "is_collide()" at line #102
-      // ----------------------------------------------
+      auto& self_circle = aCircle.at(ic0);
+
+      for (auto icircle : stack) {
+        auto& other_circle = aCircle.at(icircle);
+        if (is_collide(self_circle, other_circle, rad)) {
+          self_circle.is_collided = other_circle.is_collided = true;
+        }
+      }
       stack.insert(ic0);
     }
     else{ // exit the range of the circle

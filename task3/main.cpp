@@ -51,28 +51,29 @@ DFM2_INLINE void WdWddW_Spring2(
       {+u01[0], +u01[1]} };
   double ddC[nnode][nnode][ndim][ndim]; // hessian of C
   std::fill_n(&ddC[0][0][0][0], nnode*nnode*ndim*ndim, 0.0); // currently ddC is zet to zero.
-  for(unsigned int idim=0;idim<ndim;++idim){
-    for(unsigned int jdim=0;jdim<ndim;++jdim) {
-      // write some code below to compute the ddC.
-      // ddC[ino][jno][ino][jno] means differentiation of C w.r.t. p[ino][idim] and then p[jno][jdim]
+  for(unsigned int ino=0;ino<nnode;++ino) {
+    for(unsigned int jno=0;jno<nnode;++jno) {
+      for(unsigned int idim=0;idim<ndim;++idim){
+        for(unsigned int jdim=0;jdim<ndim;++jdim) {
+          // write some code below to compute the ddC.
+          // ddC[ino][jno][idim][jdim] means differentiation of C w.r.t. p[ino][idim] and then p[jno][jdim]
 
-//      ddC[0][0][idim][jdim] =
-//      ddC[0][1][idim][jdim] =
-//      ddC[1][0][idim][jdim] =
-//      ddC[1][1][idim][jdim] =
+          ddC[ino][jno][idim][jdim] = ((idim == jdim ? 1. : 0.) * (ino == jno ? 1. : -1.) - dC[ino][idim] * dC[jno][jdim]) / len;
+        }
+      }
     }
   }
   //
   W = 0.5 * stiffness * C * C; // Hooke's law. energy is square of length difference W=1/2*k*C*C
-  for(int ino=0; ino < nnode; ++ino){
-    for(int idim=0;idim < ndim;++idim){
+  for(unsigned int ino=0; ino < nnode; ++ino){
+    for(unsigned int idim=0;idim < ndim;++idim){
       dW[ino][idim] = stiffness * dC[ino][idim] * C; // dW = k*dC*C
     }
   }
-  for(int ino=0; ino < nnode; ++ino){
-    for (int jno = 0; jno < nnode; ++jno) {
-      for (int idim = 0; idim < ndim; ++idim) {
-        for (int jdim = 0; jdim < ndim; ++jdim) {
+  for(unsigned int ino=0; ino < nnode; ++ino){
+    for (unsigned int jno = 0; jno < nnode; ++jno) {
+      for (unsigned int idim = 0; idim < ndim; ++idim) {
+        for (unsigned int jdim = 0; jdim < ndim; ++jdim) {
           ddW[ino][jno][idim][jdim] =
               + stiffness * dC[ino][idim] * dC[jno][jdim]
               + stiffness * C * ddC[ino][jno][idim][jdim]; // ddW = k*dC*dC + k*C*ddC
@@ -109,7 +110,7 @@ void EnergyMinimization(
   hessW.setZero();
   gradW.setZero();
   double W = 0.0;
-  for(int il=0;il<aLine.size()/2;++il){ // loop over springs
+  for(unsigned il=0;il<aLine.size()/2;++il){ // loop over springs
     unsigned int ip0 = aLine[il*2+0]; // index of point0
     unsigned int ip1 = aLine[il*2+1]; // index of point1
     const double Len = distance2(aXY0.data()+ip0*2, aXY0.data()+ip1*2); // initial length

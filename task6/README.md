@@ -52,7 +52,7 @@ In the visualization, the black points and line represent the polygon, the red l
 
 If the code working well, you will see that **the enrgy steadly deceases to the convergence** and **the area converges to one**. Paste the screenshot image below by editing this mark down document.
 
-=== paste screenshot here ===
+![](./problem2.png)
 
 
 

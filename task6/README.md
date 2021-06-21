@@ -31,7 +31,7 @@ $ git submodule update --init 3rd_party/delfem2
 
 Build the `main.cpp` using `cmake`. Run the program and take a screenshot image of the window. Paste the screenshot image below by editing this mark down document.
 
-=== paste screenshot here ===
+![](./problem1.png)
 
 You will probably see a **highly distorted polygon shrinking **, but that's OK. 
 

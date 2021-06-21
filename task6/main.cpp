@@ -105,17 +105,23 @@ void Optimize(
     // write some codes below
     for(int idim=0;idim<2;++idim) {
       for(int jdim=0;jdim<2;++jdim) {
-        matA(ip0 * 2 + idim, ip0 * 2 + jdim) += ddW[0][0][idim][jdim];
-        matA(ip0 * 2 + idim, ip1 * 2 + jdim) += ddW[0][1][idim][jdim];
-        matA(ip1 * 2 + idim, ip0 * 2 + jdim) += ddW[1][0][idim][jdim];
-        matA(ip1 * 2 + idim, ip1 * 2 + jdim) += ddW[1][1][idim][jdim];
+        matA(ip0 * 2 + idim, ip0 * 2 + jdim) += ddW[0][0][idim][jdim] + lambda * ddG[0][0][idim][jdim];
+        matA(ip0 * 2 + idim, ip1 * 2 + jdim) += ddW[0][1][idim][jdim] + lambda * ddG[0][1][idim][jdim];
+        matA(ip1 * 2 + idim, ip0 * 2 + jdim) += ddW[1][0][idim][jdim] + lambda * ddG[1][0][idim][jdim];
+        matA(ip1 * 2 + idim, ip1 * 2 + jdim) += ddW[1][1][idim][jdim] + lambda * ddG[1][1][idim][jdim];
       }
-      vecB(ip0*2+idim) += dW[0][idim];
-      vecB(ip1*2+idim) += dW[1][idim];
-      // write something around here to put the areal constraint
-      // Note that the "np*2"-th DoF is for the Lagrange multiplier
+      vecB(ip0*2+idim) += dW[0][idim] + lambda * dG[0][idim];
+      vecB(ip1*2+idim) += dW[1][idim] + lambda * dG[1][idim];
+
+      matA(ip0 * 2 + idim, np * 2) += dG[0][idim];
+      matA(ip1 * 2 + idim, np * 2) += dG[1][idim];
+      matA(np * 2, ip0 * 2 + idim) += dG[0][idim];
+      matA(np * 2, ip1 * 2 + idim) += dG[1][idim];
     }
+
+    vecB(np * 2) += G;
   }
+  vecB(np * 2) -= 1;
 
   // no further modification below
   // ---------------

@@ -2,6 +2,8 @@
 #include "delfem2/glfw/viewer2.h"
 #include "delfem2/mshprimitive.h"
 #include <GLFW/glfw3.h>
+#include <array>
+#include <numeric>
 #include <cstdlib>
 #include <cstdio>
 #include <Eigen/Core>
@@ -105,24 +107,40 @@ int main()
         aXYt[ixy*2+1] = aXY[ixy*2+1] + dt*aUV[ixy*2+1];
       }
       for(unsigned int iq=0;iq<aQuad.size()/4;++iq){
-        const Eigen::Vector2f ap[4] = { // coordinates of quad's corner points (tentative shape)
-            Eigen::Map<Eigen::Vector2f>(aXYt.data()+aQuad[iq*4+0]*2),
-            Eigen::Map<Eigen::Vector2f>(aXYt.data()+aQuad[iq*4+1]*2),
-            Eigen::Map<Eigen::Vector2f>(aXYt.data()+aQuad[iq*4+2]*2),
-            Eigen::Map<Eigen::Vector2f>(aXYt.data()+aQuad[iq*4+3]*2) };
-        const Eigen::Vector2f aq[4] = { // coordinates of quads' corner points (rest shape)
-            Eigen::Map<const Eigen::Vector2f>(aXY0.data()+aQuad[iq*4+0]*2),
-            Eigen::Map<const Eigen::Vector2f>(aXY0.data()+aQuad[iq*4+1]*2),
-            Eigen::Map<const Eigen::Vector2f>(aXY0.data()+aQuad[iq*4+2]*2),
-            Eigen::Map<const Eigen::Vector2f>(aXY0.data()+aQuad[iq*4+3]*2) };
-        const float am[4] = { // masses of the points
+        std::array<Eigen::Map<Eigen::Vector2f>, 4> ap = { // coordinates of quad's corner points (tentative shape)
+            Eigen::Map<Eigen::Vector2f>{aXYt.data() + aQuad[iq * 4 + 0] * 2},
+            Eigen::Map<Eigen::Vector2f>{aXYt.data() + aQuad[iq * 4 + 1] * 2},
+            Eigen::Map<Eigen::Vector2f>{aXYt.data() + aQuad[iq * 4 + 2] * 2},
+            Eigen::Map<Eigen::Vector2f>{aXYt.data() + aQuad[iq * 4 + 3] * 2} };
+        const std::array<Eigen::Map<const Eigen::Vector2f>, 4> aq = { // coordinates of quads' corner points (rest shape)
+            Eigen::Map<const Eigen::Vector2f>{aXY0.data() + aQuad[iq * 4 + 0] * 2},
+            Eigen::Map<const Eigen::Vector2f>{aXY0.data() + aQuad[iq * 4 + 1] * 2},
+            Eigen::Map<const Eigen::Vector2f>{aXY0.data() + aQuad[iq * 4 + 2] * 2},
+            Eigen::Map<const Eigen::Vector2f>{aXY0.data() + aQuad[iq * 4 + 3] * 2} };
+        const Eigen::RowVector4f am{ // masses of the points
             aMass[aQuad[iq*4+0]],
             aMass[aQuad[iq*4+1]],
             aMass[aQuad[iq*4+2]],
             aMass[aQuad[iq*4+3]] };
         // write some code below to rigidly transform the points in the rest shape (`aq`) such that the
         // weighted sum of squared distances against the points in the tentative shape (`qp`) is minimized (`am` is the weight).
+        const float sum_m = am.sum();
+        const Eigen::Vector2f t_cg = std::inner_product(ap.cbegin(), ap.cend(), am.cbegin(), Eigen::Vector2f{Eigen::Vector2f::Zero()}) / sum_m;
+        const Eigen::Vector2f T_cg = std::inner_product(aq.cbegin(), aq.cend(), am.cbegin(), Eigen::Vector2f{Eigen::Vector2f::Zero()}) / sum_m;
 
+        Eigen::Matrix2f B_AT;
+        B_AT.setZero();
+        for (size_t i = 0; i < ap.size(); i++) {
+          B_AT += am(i) * (ap.at(i) - t_cg) * (aq.at(i) - T_cg).transpose();
+        }
+
+        const Eigen::JacobiSVD<Eigen::Matrix2f> svd(B_AT, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        const Eigen::Matrix2f R_opt = svd.matrixU() * svd.matrixV().transpose();
+        const Eigen::Vector2f t_opt = t_cg - R_opt * T_cg;
+
+        for (size_t i = 0; i < ap.size(); i++) {
+          ap.at(i) = R_opt * aq.at(i) + t_opt;
+        }
 
         // no edits further down
       }

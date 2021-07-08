@@ -125,8 +125,8 @@ int main()
         // write some code below to rigidly transform the points in the rest shape (`aq`) such that the
         // weighted sum of squared distances against the points in the tentative shape (`qp`) is minimized (`am` is the weight).
         const float sum_m = am.sum();
-        const Eigen::Vector2f t_cg = std::inner_product(ap.cbegin(), ap.cend(), am.cbegin(), Eigen::Vector2f{Eigen::Vector2f::Zero()}) / sum_m;
-        const Eigen::Vector2f T_cg = std::inner_product(aq.cbegin(), aq.cend(), am.cbegin(), Eigen::Vector2f{Eigen::Vector2f::Zero()}) / sum_m;
+        const Eigen::Vector2f t_cg = std::inner_product(ap.cbegin(), ap.cend(), am.data(), Eigen::Vector2f{Eigen::Vector2f::Zero()}) / sum_m;
+        const Eigen::Vector2f T_cg = std::inner_product(aq.cbegin(), aq.cend(), am.data(), Eigen::Vector2f{Eigen::Vector2f::Zero()}) / sum_m;
 
         Eigen::Matrix2f B_AT;
         B_AT.setZero();
